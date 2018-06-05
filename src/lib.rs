@@ -192,12 +192,14 @@ fn validate_day_postfix(day: u8, postfix: &str) -> Result<(), ParseDateError> {
     }
 }
 
+static MONTHS_WITH_31: &'static [u8] = &[1, 3, 5, 7, 8, 10, 12];
+static MONTHS_WITH_30: &'static [u8] = &[4, 6, 9, 11];
+
 fn validate_day_month(day: u8, month: u8) -> Result<(), ParseDateError> {
     match (day, month) {
-        (1...31, 1) | (1...29, 2) | (1...31, 3) |
-        (1...30, 4) | (1...31, 5) | (1...30, 6) |
-        (1...31, 7) | (1...31, 8) | (1...30, 9) |
-        (1...31, 10) | (1...30, 11) | (1...31, 12) => Ok(()),
+        (1...31, m) if MONTHS_WITH_31.contains(&m) => Ok(()),
+        (1...30, m) if MONTHS_WITH_30.contains(&m) => Ok(()),
+        (1...29, 2) => Ok(()),
         _ => Err(ParseDateError::DayDoesNotFitInMonth(day, month))
     }
 }
