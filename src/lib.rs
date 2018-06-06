@@ -66,48 +66,72 @@ mod tests {
         fn it_should_parse_correct_day() {
             let input_str = "31st";
             let month = 1;
+            let year = 2018;
 
-            assert_eq!(parse_day(input_str, month), Ok(31));
+            assert_eq!(parse_day(input_str, month, year), Ok(31));
         }
 
         #[test]
         fn it_should_return_err_when_day_does_not_fit_in_month() {
             let input_str = "31st";
             let month = 4;
+            let year = 2018;
 
-            assert_eq!(parse_day(input_str, month), Err(ParseDateError::DayDoesNotFitInMonth(31, month)));
+            assert_eq!(parse_day(input_str, month, year), Err(ParseDateError::DayDoesNotFitInMonth(31, month)));
         }
 
         #[test]
         fn it_should_return_err_on_negative_day() {
             let input_str = "-2nd";
             let month = 1;
+            let year = 2018;
 
-            assert_eq!(parse_day(input_str, month), Err(ParseDateError::MalformedDay(input_str.to_string())));
+            assert_eq!(parse_day(input_str, month, year), Err(ParseDateError::MalformedDay(input_str.to_string())));
         }
 
         #[test]
         fn it_should_return_err_on_day_over_31() {
             let input_str = "32nd";
             let month = 1;
+            let year = 2018;
 
-            assert_eq!(parse_day(input_str, month), Err(ParseDateError::DayExceeds31(input_str.to_string())));
+            assert_eq!(parse_day(input_str, month, year), Err(ParseDateError::DayDoesNotFitInMonth(32, 1)));
         }
 
         #[test]
         fn it_should_return_err_when_day_cant_be_parsed() {
             let input_str = "some-trash";
             let month = 1;
+            let year = 2018;
 
-            assert_eq!(parse_day(input_str, month), Err(ParseDateError::MalformedDay(input_str.to_string())));
+            assert_eq!(parse_day(input_str, month, year), Err(ParseDateError::MalformedDay(input_str.to_string())));
         }
 
         #[test]
         fn it_should_return_err_when_postfix_is_incorrect() {
             let input_str = "22rd";
             let month = 1;
+            let year = 2018;
 
-            assert_eq!(parse_day(input_str, month), Err(ParseDateError::InvalidDayPostfix(22, "rd".to_string())));
+            assert_eq!(parse_day(input_str, month, year), Err(ParseDateError::InvalidDayPostfix(22, "rd".to_string())));
+        }
+
+        #[test]
+        fn it_should_allow_february_29_on_leap_year() {
+            let input_str = "29th";
+            let month = 2;
+            let leap_year = 2016;
+
+            assert_eq!(parse_day(input_str, month, leap_year), Ok(29));
+        }
+
+        #[test]
+        fn it_should_return_err_when_february_29_on_non_leap_year() {
+            let input_str = "29th";
+            let month = 2;
+            let non_leap_year = 2017;
+
+            assert_eq!(parse_day(input_str, month, non_leap_year), Err(ParseDateError::NonLeapYear(non_leap_year)));
         }
     }
 
@@ -167,9 +191,9 @@ enum ParseDateError {
     UnknownMonth(String),
     UnknownPreposition(String),
     MalformedDay(String),
-    DayExceeds31(String),
     DayDoesNotFitInMonth(u8, u8),
     InvalidDayPostfix(u8, String),
+    NonLeapYear(i32),
     MalformedYear(String),
 }
 
@@ -191,6 +215,17 @@ fn validate_day_postfix(day: u8, postfix: &str) -> Result<(), ParseDateError> {
         _ => Err(ParseDateError::InvalidDayPostfix(day, postfix.to_string()))
     }
 }
+fn is_leap_year(year: i32) -> bool {
+    ((year % 4 == 0) && (year % 100 != 0)) || (year % 400 == 0)
+}
+
+fn validate_leap_year(day: u8, month: u8, year: i32) -> Result<(), ParseDateError> {
+    if !is_leap_year(year) && month == 2 && day == 29 {
+        Err(ParseDateError::NonLeapYear(year))
+    } else {
+        Ok(())
+    }
+}
 
 static MONTHS_WITH_31: &'static [u8] = &[1, 3, 5, 7, 8, 10, 12];
 static MONTHS_WITH_30: &'static [u8] = &[4, 6, 9, 11];
@@ -204,7 +239,7 @@ fn validate_day_month(day: u8, month: u8) -> Result<(), ParseDateError> {
     }
 }
 
-fn parse_day(input_str: &str, month: u8) -> Result<u8, ParseDateError> {
+fn parse_day(input_str: &str, month: u8, year: i32) -> Result<u8, ParseDateError> {
     let day = input_str
         .chars()
         .take_while(|c| c.is_digit(10))
@@ -212,13 +247,10 @@ fn parse_day(input_str: &str, month: u8) -> Result<u8, ParseDateError> {
         .parse::<u8>()
         .map_err(|_| ParseDateError::MalformedDay(input_str.to_string()))?;
 
-    if day > 31 {
-        return Err(ParseDateError::DayExceeds31(input_str.to_string()));
-    }
-
     let day_postfix = input_str.chars().skip_while(|c| c.is_digit(10)).collect::<String>();
-    let _ = validate_day_postfix(day, &day_postfix)?;
     let _ = validate_day_month(day, month)?;
+    let _ = validate_day_postfix(day, &day_postfix)?;
+    let _ = validate_leap_year(day, month, year)?;
     
     Ok(day)
 }
@@ -256,10 +288,10 @@ impl FromStr for Date {
 
     fn from_str(input_str: &str) -> Result<Self, Self::Err> {
         let (day_str, preposition, month_str, year_str) = tokenize(input_str)?;
+        let year = parse_year(&year_str)?;
         let _ = parse_preposition(&preposition)?;
         let month = parse_month(&month_str)?;
-        let day = parse_day(&day_str, month)?;
-        let year = parse_year(&year_str)?;
+        let day = parse_day(&day_str, month, year)?;
         Ok(Date { day, month, year})
     }
 }
