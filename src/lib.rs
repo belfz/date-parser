@@ -179,14 +179,14 @@ mod tests {
 }
 
 #[derive(Debug, PartialEq)]
-struct Date {
+pub struct Date {
     day: u8,
     month: u8,
     year: i32,
 }
 
 #[derive(Debug, PartialEq)]
-enum ParseDateError {
+pub enum ParseDateError {
     MalformedDateString(String),
     UnknownMonth(String),
     UnknownPreposition(String),
