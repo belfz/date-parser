@@ -262,18 +262,18 @@ fn parse_preposition(input_str: &str) -> Result<(), ParseDateError> {
 
 fn parse_month(input_str: &str) -> Result<u8, ParseDateError> {
     match input_str.to_lowercase().as_ref() {
-        "january" => Ok(1),
-        "february" => Ok(2),
-        "march" => Ok(3),
-        "april" => Ok(4),
-        "may" => Ok(5),
-        "june" => Ok(6),
-        "july" => Ok(7),
-        "august" => Ok(8),
+        "january"   => Ok(1),
+        "february"  => Ok(2),
+        "march"     => Ok(3),
+        "april"     => Ok(4),
+        "may"       => Ok(5),
+        "june"      => Ok(6),
+        "july"      => Ok(7),
+        "august"    => Ok(8),
         "september" => Ok(9),
-        "october" => Ok(10),
-        "november" => Ok(11),
-        "december" => Ok(12),
+        "october"   => Ok(10),
+        "november"  => Ok(11),
+        "december"  => Ok(12),
         _ => Err(ParseDateError::UnknownMonth(input_str.to_string()))
     }
 }
